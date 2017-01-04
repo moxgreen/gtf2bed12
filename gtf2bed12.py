@@ -46,13 +46,13 @@ class Transcript:
 
 def main():
 	usage = format_usage('''
-		%prog PARAM1 PARAM2 < STDIN
+		%prog < some_file.gtf > some_file.bed
 	''')
 	parser = OptionParser(usage=usage)
 	
-	parser.add_option('-s', '--score', type=str, dest='score', default=None, help='use the attribute SCORE of the transcriopt to replace the score column in the outout bed [default: %default]', metavar='SCORE')
+	parser.add_option('-s', '--score', type=str, dest='score', default=None, help='use the attribute SCORE of the transcript to replace the score column in the outout bed [default: %default]', metavar='SCORE')
 	parser.add_option('-a', '--add_to_id', type=str, dest='add_to_id', default=None, help='add to the id the value of the A attribute [default: %default]', metavar='A')
-	parser.add_option('-n', '--normalize_score', action='store_true', dest="normalize_score", default=False, help="divide the score for N and multiply to 1000 (1000 is the maximum value), often used with -s [default: %default]", metavar="N")
+	parser.add_option('-n', '--normalize_score', type=float, dest="normalize_score", default=None, help="divide the score for N and multiply to 1000 (1000 is the maximum score value on ucsc borowser), often used with -s.\nIf this option si given all score that will result >1000 will be truncated =1000. [default: %default]", metavar="N")
 	#parser.add_option('-l', '--log_score', action='store_true', dest="log_score", default=False, help="do not report the score but the log2 of the score, often used with -s [default: %default]")
 	parser.add_option('-r', '--reference', type=str, dest='reference', default=None, help='use the attribute REFERENCE instead of transcript_id if REFERENCE is present [default: %default]', metavar='REFERENCE')
 
@@ -63,6 +63,7 @@ def main():
 	
 	#for id, sample, raw, norm in Reader(stdin, '0u,1s,2i,3f', False):
 	transcripts={}
+	warned_saturation=False
 	for line in stdin:
 		if line[0]=="#":
 			print line,
@@ -90,9 +91,13 @@ def main():
 
 				if options.score is not None:
 					score = attributes[options.score]
-				if options.normalize_score:
+				if options.normalize_score is not None:
 					score = log(1+float(score))/log(2)
-					score = int(score/options.normalize_score*1000)
+					score = int((score/options.normalize_score)*1000)
+					if score > 1000 and not warned_saturation:
+						stderr.write("WARNING: score > 1000 saturated at 1000\n")
+						warned_saturation=True
+
 
 				t=Transcript(t_id,seqname,source,b,e,score,strand,frame,attributes)
 				transcripts[t_id]=t
