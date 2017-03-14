@@ -71,6 +71,7 @@ def main():
 		if line[0]=="#":
 			print line,
 			continue
+		line = line.rstrip()
 
 		(seqname,source,feature,b,e,score,strand,frame,attributes) = safe_rstrip(line).split('\t')
 		b=int(b)-1 #the bed is 0 based
