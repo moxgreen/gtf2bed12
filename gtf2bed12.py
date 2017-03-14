@@ -54,9 +54,12 @@ def main():
 	parser.add_option('-a', '--add_to_id', type=str, dest='add_to_id', default=None, help='add to the id the value of the A attribute [default: %default]', metavar='A')
 	parser.add_option('-n', '--normalize_score', type=float, dest="normalize_score", default=None, help="divide the score for N and multiply to 1000 (1000 is the maximum score value on ucsc borowser), often used with -s.\nIf this option si given all score that will result >1000 will be truncated =1000. [default: %default]", metavar="N")
 	#parser.add_option('-l', '--log_score', action='store_true', dest="log_score", default=False, help="do not report the score but the log2 of the score, often used with -s [default: %default]")
-	parser.add_option('-r', '--reference', type=str, dest='reference', default=None, help='use the attribute REFERENCE instead of transcript_id if REFERENCE is present [default: %default]', metavar='REFERENCE')
+	parser.add_option('-r', '--reference', type=str, dest='reference', default="transcript_id", help='use the attribute REFERENCE to group features [default: %default]', metavar='REFERENCE')
+	parser.add_option('-i','--ignore',action='store_true', dest="ignore", default=False, help="ignore rows that do not have REFERENCE attribute")
 
 	options, args = parser.parse_args()
+
+	reference_feature = options.reference
 	
 	#if len(args) != 2:
 	#	exit('Unexpected argument number.')
@@ -77,7 +80,11 @@ def main():
 		attributes = [ (a[0], re.sub(r'"$',"", a[1])) for a in attributes] #removing "
 		attributes = dict(attributes)
 
-		t_id = attributes["transcript_id"]
+		t_id =  attributes.get(reference_feature,None)
+		if t_id is None: 
+			if options.ignore:
+				continue
+			raise Exception("Found a row without REFERENCE attibute, use -i to ignore.")
 		if options.reference is not None:
 			try:
 				t_id =  attributes[options.reference]
